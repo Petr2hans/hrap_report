@@ -204,23 +204,28 @@ def gen_pend_data(theta_max = np.pi/2, g = 9.8, L = 3, t_end = 10.0, num_points 
     sol = solve_ivp(exact_pendulum, [0, t_end], [theta_max, 0], t_eval=t_eval)
 
     th = sol.y[0]
+    omega = sol.y[1] #Review 4: extracting angular velocity
     true_std = np.std(th)
     noise = rng.normal(loc=0.0, scale= 1, size=num_points)
     th_noisy = th + noise * noise_percentage * true_std
 
-    return pd.DataFrame({'time': sol.t, 'th_true': th, 'th_noisy': th_noisy})
+    df = pd.DataFrame({'time': sol.t, 'th_true': th, 'th_noisy': th_noisy})
 
-df_pen_l = gen_pend_data(noise_percentage=0.01)
-df_pen_m = gen_pend_data(noise_percentage=0.05)
-df_pen_n = gen_pend_data(noise_percentage=0.1)
+    return df, omega
+
+df_pen_l, omega_l = gen_pend_data(noise_percentage=0.01)
+df_pen_m, omega_m = gen_pend_data(noise_percentage=0.05)
+df_pen_n, omega_n = gen_pend_data(noise_percentage=0.1)
+
+X_l = np.stack((df_pen_l["th_noisy"], omega_l), axis = -1)
+X_m = np.stack((df_pen_m["th_noisy"], omega_m), axis = -1)
+X_n = np.stack((df_pen_n["th_noisy"], omega_n), axis = -1)
 
 t = df_pen_l["time"].to_numpy()
 dt = t[1] - t[0]
-pen_l = df_pen_l['th_noisy'].to_numpy()
-pen_m = df_pen_m['th_noisy'].to_numpy()
-pen_n = df_pen_n['th_noisy'].to_numpy()
-data = [pen_l, pen_m, pen_n]
-equations = []
+data = [X_l, X_m, X_n]
+thetas = [df_pen_l["th_noisy"], df_pen_m["th_noisy"], df_pen_n["th_noisy"]]
+omegas = [omega_l, omega_m, omega_n]
 fd = ps.SmoothedFiniteDifference(smoother_kws={'window_length': 5}, d=2)
 pen_true = df_pen_l['th_true'].to_numpy()
 pen_true = fd._differentiate(pen_true, t=dt)
@@ -233,15 +238,15 @@ lib = ps.CustomLibrary(library_functions=library_functions, function_names=libra
 
 optimizer = ps.STLSQ(threshold=0.1)
 pysindy_model = ps.SINDy(optimizer=optimizer, feature_library=lib)
-j = 0
-for i in data:
-    x_dot = fd._differentiate(i, t=dt)
-    pysindy_model.fit(i, t=dt, x_dot=x_dot,  feature_names=["th_t"])
-    trajectory = pysindy_model.simulate(i[0].flatten(), t)
+for i in range (len(data)):
+    pysindy_model.fit(data[i], t=dt,  feature_names=["theta", "omega"])
+    x0=[thetas[i][0], omegas[i][0]]
+    X_simulated = pysindy_model.simulate(x0, t)
+    trajectory = X_simulated[:, 0]
     trajectory_loss = mean_squared_error(trajectory, df_pen_l['th_true'].to_numpy())
     trajectories_list.append(trajectory)
-    si_pen_results.append(pysindy_model.predict(i))
-    loss = mean_squared_error(si_pen_results[j], pen_true)
+    si_pen_results.append(pysindy_model.predict(data[i]))
+    loss = mean_squared_error(si_pen_results[i][:, 1], pen_true)
     new_row = pd.DataFrame([{
         "Method name": f"Oscillator: PySINDy, Noise Level {j + 1}",
         "Discovered Diff eq.": pysindy_model.equations(),
@@ -249,19 +254,20 @@ for i in data:
         "MSE of trajectory": trajectory_loss
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
-    j += 1
 
 si_pen_filtered_results = []
-filtered_data= [wiener(pen_l, mysize=21), wiener(pen_m, mysize=21), wiener(pen_n, mysize=21)]
+filtered_data= [wiener(X_l, mysize=21), wiener(X_m, mysize=21), wiener(X_n, mysize=21)]
 x_dot_filtered = [fd._differentiate(filtered_data[0], dt), fd._differentiate(filtered_data[1], dt), fd._differentiate(filtered_data[2], dt)]
 j = 0
 for i in range(len(filtered_data)):
-    pysindy_model.fit(filtered_data[i], t=dt, feature_names=["th_t"], x_dot= x_dot_filtered[i])
-    trajectory = pysindy_model.simulate(filtered_data[i][0].flatten(), t)
+    pysindy_model.fit(filtered_data[i], t=dt, feature_names=["theta", "omega"])
+    x0 = [thetas[i][0], omegas[i][0]]
+    X_simulated = pysindy_model.simulate(x0, t)
+    trajectory = X_simulated[:, 0]
     trajectory_loss = mean_squared_error(trajectory, df_pen_l['th_true'].to_numpy())
     trajectories_list.append(trajectory)
     si_pen_filtered_results.append(pysindy_model.predict(filtered_data[i]))
-    loss = mean_squared_error(si_pen_filtered_results[j], pen_true)
+    loss = mean_squared_error(si_pen_filtered_results[i][:, 1], pen_true)
     new_row = pd.DataFrame([{
         "Method name": f"Oscillator: PySINDy, Filtered, Noise Level {j + 1}",
         "Discovered Diff eq.": pysindy_model.equations(),
@@ -269,11 +275,12 @@ for i in range(len(filtered_data)):
         "MSE of trajectory": trajectory_loss
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
-    j += 1
 
+pen_l = df_pen_l['th_true'].to_numpy()
+pen_m = df_pen_m['th_true'].to_numpy()
+pen_n = df_pen_n['th_true'].to_numpy()
 
-# %%
-data = [pen_l.reshape(-1,1), pen_m.reshape(-1,1), pen_n.reshape(-1,1)]
+data = [pen_l.reshape(-1,1), pen_m.reshape(-1,1),  pen_n.reshape(-1,1)]
 sr_pen_results = []
 model = PySRRegressor(
     niterations = 1000,
@@ -341,8 +348,8 @@ fig.savefig("results/osc_pysr.png")
 plt.show() # dotted line – true equation
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 for i, ax in enumerate(axes.flat):
-    ax.plot(t, si_pen_results[i], label = "Discovered eq.")
-    ax.plot(t, si_pen_filtered_results[i], color="red", label = "Eq. from filtered data")
+    ax.plot(t, si_pen_results[i][:, 1], label = "Discovered eq.")
+    ax.plot(t, si_pen_filtered_results[i][:, 1], color="red", label = "Eq. from filtered data")
     ax.plot(t, true, linestyle="--", label = "True eq.")
     ax.legend()
 plt.tight_layout()
@@ -375,7 +382,7 @@ for i in range(len(trajectories_list)):
         axs[i].plot(t, df_pen_l["th_true"].to_numpy(), linestyle="--", label="True Trajectory")
     else:
         raise ValueError
-    ax.legend()
+    axs[i].legend()
 plt.tight_layout()
 fig.savefig("results/all_trajectories.png")
 plt.show()

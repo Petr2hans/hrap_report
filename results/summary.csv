@@ -11,12 +11,12 @@
 9,"Log Growth: PySINDy, Noise Level 1",[' 0.004 1 +  1.097 pt + -0.001 pt^2'],3.7762358265655043,2.2453960498123138
 10,"Log Growth: PySINDy, Noise Level 2",[' 0.004 1 +  1.083 pt + -0.001 pt^2'],71.02839422998406,2.904556150458089
 11,"Log Growth: PySINDy, Noise Level 3",[' 0.003 1 +  0.967 pt + -0.001 pt^2'],268.150235959897,141.20120820268397
-12,"Oscillator: PySINDy, Noise Level 1",['-3.185 sin(th_t)'],0.005932115404684195,1.142656724048263
-13,"Oscillator: PySINDy, Noise Level 2",['-5.486 sin(th_t)'],3.2557572546208666,1.1745566016034814
-14,"Oscillator: PySINDy, Noise Level 3",['-1.995 sin(th_t)'],1.1089962298540148,1.1420488356951706
-15,"Oscillator: PySINDy, Filtered, Noise Level 1",['-3.203 sin(th_t)'],0.07828996058928757,1.1649703553403108
-16,"Oscillator: PySINDy, Filtered, Noise Level 2",['-4.069 sin(th_t)'],0.24792981274526366,1.177535958755441
-17,"Oscillator: PySINDy, Filtered, Noise Level 3",['-3.026 sin(th_t)'],0.1732683732603414,1.164595968212408
-18,"Oscillator: PySR, Noise Level 1",th_t/(-0.4351324),0.10584911881596355,0.013243924905585656
-19,"Oscillator: PySR, Noise Level 2",0.5679397/sin(th_t/0.007928934),137.36907865709193,inf
-20,"Oscillator: PySR, Noise Level 3",-0.17896095/(th_t - 1*(-1.4257506)),192.19377444269728,2.8084164995686027
+12,"Oscillator: PySINDy, Noise Level 4","[' 2.083 sin(omega)', '-3.267 sin(theta)']",0.0012186752960825094,0.17753702394007767
+13,"Oscillator: PySINDy, Noise Level 4","[' 2.026 sin(omega)', '-3.266 sin(theta)']",0.01264906932803581,0.80407572010845
+14,"Oscillator: PySINDy, Noise Level 4","[' 2.060 sin(omega)', '-3.263 sin(theta)']",0.04848092736808354,0.21333691188445802
+15,"Oscillator: PySINDy, Filtered, Noise Level 1","['-1.204 sin(theta) +  0.760 sin(omega)', '-8.614 sin(theta) +  1.321 sin(omega)']",4.516118179236077,0.9057178463472019
+16,"Oscillator: PySINDy, Filtered, Noise Level 1","['-1.187 sin(theta) +  0.762 sin(omega)', '-8.558 sin(theta) +  1.303 sin(omega)']",4.521809774481117,1.1042038957635592
+17,"Oscillator: PySINDy, Filtered, Noise Level 1","['-1.179 sin(theta) +  0.762 sin(omega)', '-8.402 sin(theta) +  1.297 sin(omega)']",4.576105958619969,1.2701101052716652
+18,"Oscillator: PySR, Noise Level 1",sin(th_t + sin(th_t*(-5.8163047))*(-0.008618326))*(-3.269718),0.0006966843743480144,0.0001999527308160506
+19,"Oscillator: PySR, Noise Level 2",sin(th_t + sin(th_t*(-5.8163047))*(-0.008618326))*(-3.269718),0.0006966843743480144,0.0001999527308160506
+20,"Oscillator: PySR, Noise Level 3",sin(th_t + sin(th_t*(-5.8163047))*(-0.008618326))*(-3.269718),0.0006966843743480144,0.0001999527308160506
