@@ -5,7 +5,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import warnings
 import sympy as sp
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 from scipy.integrate import solve_ivp
 from scipy.signal import wiener
 warnings.filterwarnings("ignore") #Ignoring PySINDy warnings
@@ -41,7 +41,8 @@ final_dict = {
     "Method name" : [],
     "Discovered Diff eq." : [],
     "MSE of Diff eq." : [],
-    "MSE of trajectory" : []
+    "MSE of trajectory" : [],
+    "R^2 trajectory score": []
 }
 final_table = pd.DataFrame(final_dict)
 trajectories_list = []
@@ -88,11 +89,13 @@ for i in range (len(target)):
     trajectory = integrate_pysr_eq([10], "pt", model.sympy(), t)
     trajectories_list.append(trajectory)
     trajectory_loss = mean_squared_error(trajectory, df_low["y_true"].to_numpy())
+    r2 = r2_score(df_low["y_true"].to_numpy(), trajectory)
     new_row = pd.DataFrame([{
         "Method name": f"Exp. Decay: PySR, Noise Level {i+1}",
         "Discovered Diff eq.": model.sympy(),
         "MSE of Diff eq.": loss,
-        "MSE of trajectory": trajectory_loss
+        "MSE of trajectory": trajectory_loss,
+        "R^2 trajectory score": r2
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
 
@@ -105,6 +108,7 @@ for i in data:
     pysindy_model.fit(i, t=dt, feature_names=["nt"])
     trajectory = pysindy_model.simulate(i[0].flatten(), t)
     trajectory_loss = mean_squared_error(trajectory, df_low["y_true"].to_numpy())
+    r2 = r2_score(df_low["y_true"].to_numpy(), trajectory)
     trajectories_list.append(trajectory)
     si_results.append(pysindy_model.predict(i))
     loss = mean_squared_error(si_results[j], decay_true)
@@ -112,7 +116,8 @@ for i in data:
         "Method name": f"Exp. Decay: PySINDy, Noise Level {j + 1}",
         "Discovered Diff eq.": pysindy_model.equations(),
         "MSE of Diff eq.": loss,
-        "MSE of trajectory": trajectory_loss
+        "MSE of trajectory": trajectory_loss,
+        "R^2 trajectory score": r2
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
     j += 1
@@ -158,13 +163,15 @@ for i in range (len(target)):
     sr_log_results.append(model.predict(data[i]))
     trajectory = integrate_pysr_eq([100],"pt", model.sympy(), t)
     trajectory_loss = mean_squared_error(trajectory, df_log_l["pop_true"].to_numpy())
+    r2 = r2_score(df_log_l["pop_true"].to_numpy(), trajectory)
     trajectories_list.append(trajectory)
     loss = mean_squared_error(sr_log_results[i], log_true)
     new_row = pd.DataFrame([{
         "Method name": f"Log Growth: PySR, Noise Level {i + 1}",
         "Discovered Diff eq.": model.sympy(),
         "MSE of Diff eq.": loss,
-        "MSE of trajectory": trajectory_loss
+        "MSE of trajectory": trajectory_loss,
+        "R^2 trajectory score": r2
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
 
@@ -179,18 +186,18 @@ for i in data:
     si_log_results.append(pysindy_model.predict(i))
     trajectory = pysindy_model.simulate(i[0].flatten(), t)
     trajectory_loss = mean_squared_error(trajectory, df_log_l["pop_true"].to_numpy())
+    r2 = r2_score(df_log_l["pop_true"].to_numpy(), trajectory)
     trajectories_list.append(trajectory)
     loss = mean_squared_error(si_log_results[j], log_true)
     new_row = pd.DataFrame([{
         "Method name": f"Log Growth: PySINDy, Noise Level {j + 1}",
         "Discovered Diff eq.": pysindy_model.equations(),
         "MSE of Diff eq.": loss,
-        "MSE of trajectory": trajectory_loss
+        "MSE of trajectory": trajectory_loss,
+        "R^2 trajectory score": r2
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
     j += 1
-
-from scipy.integrate import solve_ivp
 
 def gen_pend_data(theta_max = np.pi/2, g = 9.8, L = 3, t_end = 10.0, num_points = 200, noise_percentage=0.0):
     t_eval = np.linspace(0, t_end, num_points)
@@ -244,6 +251,7 @@ for i in range (len(data)):
     X_simulated = pysindy_model.simulate(x0, t)
     trajectory = X_simulated[:, 0]
     trajectory_loss = mean_squared_error(trajectory, df_pen_l['th_true'].to_numpy())
+    r2 = r2_score(df_pen_l['th_true'].to_numpy(), trajectory)
     trajectories_list.append(trajectory)
     si_pen_results.append(pysindy_model.predict(data[i]))
     loss = mean_squared_error(si_pen_results[i][:, 1], pen_true)
@@ -251,7 +259,8 @@ for i in range (len(data)):
         "Method name": f"Oscillator: PySINDy, Noise Level {j + 1}",
         "Discovered Diff eq.": pysindy_model.equations(),
         "MSE of Diff eq.": loss,
-        "MSE of trajectory": trajectory_loss
+        "MSE of trajectory": trajectory_loss,
+        "R^2 of trajectory": r2
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
 
@@ -265,6 +274,7 @@ for i in range(len(filtered_data)):
     X_simulated = pysindy_model.simulate(x0, t)
     trajectory = X_simulated[:, 0]
     trajectory_loss = mean_squared_error(trajectory, df_pen_l['th_true'].to_numpy())
+    r2 = r2_score(df_pen_l['th_true'].to_numpy(), trajectory)
     trajectories_list.append(trajectory)
     si_pen_filtered_results.append(pysindy_model.predict(filtered_data[i]))
     loss = mean_squared_error(si_pen_filtered_results[i][:, 1], pen_true)
@@ -272,13 +282,14 @@ for i in range(len(filtered_data)):
         "Method name": f"Oscillator: PySINDy, Filtered, Noise Level {j + 1}",
         "Discovered Diff eq.": pysindy_model.equations(),
         "MSE of Diff eq.": loss,
-        "MSE of trajectory": trajectory_loss
+        "MSE of trajectory": trajectory_loss,
+        "R^2 of trajectory": r2
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
 
-pen_l = df_pen_l['th_true'].to_numpy()
-pen_m = df_pen_m['th_true'].to_numpy()
-pen_n = df_pen_n['th_true'].to_numpy()
+pen_l = df_pen_l['th_noisy'].to_numpy()
+pen_m = df_pen_m['th_noisy'].to_numpy()
+pen_n = df_pen_n['th_noisy'].to_numpy()
 
 data = [pen_l.reshape(-1,1), pen_m.reshape(-1,1),  pen_n.reshape(-1,1)]
 sr_pen_results = []
@@ -300,9 +311,11 @@ for i in data: #Review 2: fixed
     # Catch unstable equations that failed to integrate over the full time span
     if len(trajectory) == len(t):
         trajectory_loss = mean_squared_error(trajectory, df_pen_l['th_true'].to_numpy())
+        r2 = r2_score(df_pen_l['th_true'].to_numpy(), trajectory)
     else:
         # Penalize the unstable model heavily
         trajectory_loss = np.inf
+        r2 = np.inf
 
         # Pad the incomplete trajectory with NaNs
         trajectory = np.pad(trajectory, (0, len(t) - len(trajectory)), constant_values=np.nan)
@@ -311,7 +324,8 @@ for i in data: #Review 2: fixed
         "Method name": f"Oscillator: PySR, Noise Level {j + 1}",
         "Discovered Diff eq.": model.sympy(),
         "MSE of Diff eq.": loss,
-        "MSE of trajectory": trajectory_loss
+        "MSE of trajectory": trajectory_loss,
+        "R^2 of trajectory": r2
     }])
     final_table = pd.concat([final_table, new_row], ignore_index=True)
     j += 1
@@ -376,9 +390,9 @@ for i in range(len(trajectories_list)):
     axs[i].plot(t, trajectories_list[i], label="Discovered Trajectory")
     if i <= 5:
         axs[i].plot(t, df_low["y_true"].to_numpy(), linestyle="--", label="True Trajectory")
-    elif i > 5 and i <= 10:
+    elif i > 5 and i <= 11:
         axs[i].plot(t, df_log_l["pop_true"].to_numpy(), linestyle="--", label="True Trajectory")
-    elif i > 10:
+    elif i > 11:
         axs[i].plot(t, df_pen_l["th_true"].to_numpy(), linestyle="--", label="True Trajectory")
     else:
         raise ValueError
