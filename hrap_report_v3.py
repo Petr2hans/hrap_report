@@ -359,8 +359,7 @@ for i in data: #Review 2: fixed
     else:
         # Penalize the unstable model heavily
         trajectory_loss = np.inf
-        r2 = np.inf
-
+        r2 = np.nan
         # Pad the incomplete trajectory with NaNs
         trajectory = np.pad(trajectory, (0, len(t) - len(trajectory)), constant_values=np.nan)
     trajectories_list.append(trajectory)
@@ -368,7 +367,7 @@ for i in data: #Review 2: fixed
     if len(trajectory_oos_sr) == len(t):
         oos_loss = r2_score(true_trajectory_oos, trajectory_oos_sr)
     else:
-        oos_loss = np.inf  # Model failed to integrate over the full span
+        oos_loss = np.nan  # Model failed to integrate over the full span
     new_row = pd.DataFrame([{
         "Method name": f"Oscillator: PySR, Noise Level {j + 1}",
         "Discovered Diff eq.": model.sympy(),
@@ -401,6 +400,7 @@ plt.tight_layout()
 fig.savefig("results/log_growth_pysr_pysindy.png")
 plt.show() #dotted line – true equation
 
+t = df_pen_l["time"].to_numpy()
 true = -9.8/3*np.sin(df_pen_l["th_true"])
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 for i, ax in enumerate(axes.flat):
@@ -437,15 +437,18 @@ for ax, label in zip(axs[:, 0], row_labels):
                 rotation=90)
 axs = axs.flatten()
 for i in range(len(trajectories_list)):
-    axs[i].plot(t, trajectories_list[i], label="Discovered Trajectory")
     if i <= 5:
+        t = df_low["time"].to_numpy()
         axs[i].plot(t, df_low["y_true"].to_numpy(), linestyle="--", label="True Trajectory")
     elif i > 5 and i <= 11:
+        t = df_log_l["time"].to_numpy()
         axs[i].plot(t, df_log_l["pop_true"].to_numpy(), linestyle="--", label="True Trajectory")
     elif i > 11:
+        t = df_pen_l["time"].to_numpy()
         axs[i].plot(t, df_pen_l["th_true"].to_numpy(), linestyle="--", label="True Trajectory")
     else:
         raise ValueError
+    axs[i].plot(t, trajectories_list[i], label="Discovered Trajectory")
     axs[i].legend()
 plt.tight_layout()
 fig.savefig("results/all_trajectories.png")
