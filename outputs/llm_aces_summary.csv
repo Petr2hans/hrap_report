@@ -1,0 +1,4 @@
+System Name,Ground Truth Equation,Discovered Equation,Final NMSE,Number of Active Queries
+Exponential Decay,dx/dt = -0.5*x,dx/dt = x*(-0.5),9.775936743107328e-12,2
+Logistic Growth,dx/dt = 1.0*x*(1 - x/5.0),dx/dt = -0.2*x*x + x,9.36692877440602e-11,2
+Simple Pendulum,"dx0/dt = x1, dx1/dt = -sin(x0)","dx0/dt = x1, dx1/dt = sin(x0)*(-1.0)",1.0596086843644527e-10,2
